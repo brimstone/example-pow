@@ -27,7 +27,7 @@ func run(msg string, start int, inc int, bitlen int) int {
 	for {
 		pows = fmt.Sprintf("%d", pow)
 		hashed = sha256.Sum256([]byte(header + pows + ">"))
-		if bytes.HasPrefix(hashed[:], prefix) && hashed[offset]&partial == 0 {
+		if bytes.HasPrefix(hashed[:], prefix) && hashed[offset]&partial == partial {
 			break
 		}
 
