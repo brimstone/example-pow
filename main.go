@@ -8,6 +8,7 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"syscall"
 )
 
 /*
@@ -47,10 +48,12 @@ func main() {
 	done := make(chan bool)
 	c := runtime.NumCPU()
 
+	syscall.Setpriority(syscall.PRIO_PROCESS, 0, 19)
+
 	log.Println("Starting", c, "processes")
 
 	for i := 0; i <= c; i++ {
-		go run(msg, i, c, 200, done)
+		go run(msg, i, c, 32, done)
 	}
 
 	<-done
