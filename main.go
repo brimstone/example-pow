@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
+	"log"
+	"os"
+	"runtime"
 	"strconv"
 )
 
@@ -13,7 +16,7 @@ func check(msg string, bitlen int) bool {
 }
 */
 
-func run(msg string, start int, inc int, bitlen int) int {
+func run(msg string, start int, inc int, bitlen int, done chan bool) int {
 	pow := start
 	bits := strconv.Itoa(bitlen)
 	header := msg + " <pow:" + bits + ":"
@@ -34,11 +37,23 @@ func run(msg string, start int, inc int, bitlen int) int {
 		pow = pow + inc
 	}
 	fmt.Printf("%s %d %x\n", header+pows+">", pow, hashed[:])
+	done <- true
 	return pow
 }
 
 func main() {
-	msg := "@joeerl n/m figured it out :)"
+	msg := os.Args[1]
 
-	run(msg, 0, 1, 24)
+	done := make(chan bool)
+	c := runtime.NumCPU()
+
+	log.Println("Starting", c, "processes")
+
+	for i := 0; i <= c; i++ {
+		go run(msg, i, c, 200, done)
+	}
+
+	<-done
+	os.Exit(0)
+
 }
