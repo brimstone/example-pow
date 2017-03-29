@@ -3,10 +3,12 @@ package main
 import (
 	"bytes"
 	"crypto/sha256"
+	"flag"
 	"fmt"
 	"log"
 	"os"
 	"runtime"
+	"runtime/pprof"
 	"strconv"
 	"syscall"
 )
@@ -17,7 +19,7 @@ func check(msg string, bitlen int) bool {
 }
 */
 
-func run(msg string, start int, inc int, bitlen int, done chan bool) int {
+func run(msg string, start int64, inc int64, bitlen int, done chan bool) int64 {
 	pow := start
 	bits := strconv.Itoa(bitlen)
 	header := msg + " <pow:" + bits + ":"
@@ -29,7 +31,7 @@ func run(msg string, start int, inc int, bitlen int, done chan bool) int {
 	var pows string
 	var hashed [32]byte
 	for {
-		pows = fmt.Sprintf("%d", pow)
+		pows = strconv.FormatInt(pow, 10)
 		hashed = sha256.Sum256([]byte(header + pows + ">"))
 		if bytes.HasPrefix(hashed[:], prefix) && hashed[offset]&partial == partial {
 			break
@@ -42,21 +44,32 @@ func run(msg string, start int, inc int, bitlen int, done chan bool) int {
 	return pow
 }
 
+var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+
 func main() {
-	msg := os.Args[1]
+	flag.Parse()
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
+	msg := flag.Arg(0)
 
 	done := make(chan bool)
-	c := runtime.NumCPU()
+	c := int64(runtime.NumCPU())
+	var i int64
 
 	syscall.Setpriority(syscall.PRIO_PROCESS, 0, 19)
 
 	log.Println("Starting", c, "processes")
 
-	for i := 0; i <= c; i++ {
-		go run(msg, i, c, 32, done)
+	for i = 0; i <= c; i++ {
+		go run(msg, i, c, 24, done)
 	}
 
 	<-done
-	os.Exit(0)
-
 }
